@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>动漫APW-在线999</title>
+    <link
+      rel="stylesheet"
+      href="./bootstrap-4.6.2-dist/css/bootstrap.min.css"
+    />
+    <script src="./bootstrap-4.6.2-dist/jquery-3.2.1.min.js"></script>
+    <script src="./bootstrap-4.6.2-dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+      body {
+        padding-top: 36px;
+      }
+    </style>
+  </head>
+  <!-- 颜色aqua ——致敬恩师张老师&马老师 -->
+  <!-- Color aqua — Tribute to Mr. Zhang & Ms. Ma -->
+  <body style="background-color: aqua">
+    <div id="app">
+      <!-- 导航栏 -->
+      <target @pagechange="pagechange"></target>
+      <!-- 跳转 -->
+      <div class="container text-center mt-5">
+        <h3 class="text-center">第{{cPage}}页</h3>
+        <span>跳转到第</span>
+        <input
+          type="number"
+          @keyup.enter="goToPage"
+          style="width: 60px"
+          v-model.number="pagetxt"
+        /><span>页</span>
+        <span>/共{{lPage}}页</span>
+        <button class="btn btn-sm btn-primary ml-2" @click="goToPage">
+          跳转
+        </button>
+      </div>
+      <!-- 标头（子组件） -->
+      <components
+        :is="current"
+        :season-list="seasonList"
+        :default-year="siftyear"
+        :default-season="siftseason"
+        @year-selected="choseYears"
+        @season-selected="choseSeasons"
+        @type-selected="choseType"
+      ></components>
+      <!-- 加载中 -->
+      <div class="container text-center my-5" v-if="isLoading">
+        <div class="spinner-border text-primary" role="status">😵‍💫</div>
+        <h1 style="color: red">加载中。。。</h1>
+      </div>
+      <!-- 加载失败 -->
+      <div class="container text-center my-5" v-if="isError">
+        <h1 style="color: blue">加载失败，请重试😵</h1>
+      </div>
+      <!-- 未找到相关内容（数据为空） -->
+      <div class="container text-center my-5" v-if="ifnotfound">
+        <h1 class="text-dark">未找到相关内容，请重新输入关键字🤔</h1>
+      </div>
+      <!-- 内容 -->
+      <main class="container mt-5" v-if="!isLoading">
+        <div class="row">
+          <div
+            class="col-xl-3 col-lg-4 col-md-6 mb-3"
+            v-for="(i,index) in list"
+          >
+            <div class="card w-100 h-100">
+              <img
+                class="card-img-top h-75"
+                :src="i.images.jpg.large_image_url"
+                alt="图片加载遇到问题"
+              />
+              <div class="card-body text-center p-0">
+                <h6
+                  class="card-title h6 m-0 d-md-block d-sm-none d-none overflow-auto h-50"
+                >
+                  {{i.title_japanese}}
+                </h6>
+                <h2
+                  class="card-title h2 m-0 d-sm-block d-md-none overflow-auto h-50"
+                >
+                  {{i.title_japanese}}
+                </h2>
+                <span class="text-info small mb-1">
+                  <span>年份：</span>
+                  <span>{{i.year}}</span>
+                  <span v-if="i.year==null">未知</span>
+                </span>
+                <button
+                  type="button"
+                  class="btn btn-primary btn-sm"
+                  data-toggle="modal"
+                  data-target=".bd-example-modal-lg"
+                  @click="addvid(i.trailer.embed_url)"
+                >
+                  <b>观看预告</b>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 弹窗页面 -->
+        <div
+          class="modal fade bd-example-modal-lg"
+          tabindex="-1"
+          role="dialog"
+          aria-labelledby="myLargeModalLabel"
+          aria-hidden="true"
+          data-backdrop="false"
+        >
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <h1 class="text-center" v-if="vAddresd==null">
+                哦？这里并没有视频。
+                <img
+                  src="./image/无奈.jpeg"
+                  alt="无奈.jpeg"
+                  class="img-fluid w-100"
+                  style="max-width: 350px; height: auto"
+                />
+              </h1>
+              <iframe
+                w
+                v-if="vAddresd"
+                class="embed-responsive-item w-100"
+                width="800"
+                height="500"
+                :src="vAddresd"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen
+                referrerpolicy="strict-origin-when-cross-origin"
+                frameborder="0"
+              ></iframe>
+              <div class="modal-footer p-1">
+                <button
+                  type="button"
+                  class="btn btn-danger"
+                  data-dismiss="modal"
+                  @click="clearVid"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <!-- 翻页 -->
+      <div class="container d-flex justify-content-center">
+        <nav aria-label="Page navigation example">
+          <ul class="pagination">
+            <li class="page-item">
+              <button
+                class="btn btn-light bg-white"
+                v-if="cPage==1"
+                disabled="cPage==1"
+              >
+                《
+              </button>
+              <button v-if="cPage!=1" class="page-link" @click="past">
+                《
+              </button>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#">{{cPage}}</a>
+            </li>
+            <li class="page-item disabled">
+              <p class="page-link">...</p>
+            </li>
+            <li class="page-item disabled">
+              <a class="page-link" href="#">{{lPage}}</a>
+            </li>
+            <li class="page-item"></li>
+            <li class="page-item">
+              <button
+                class="btn btn-light bg-white"
+                v-if="cPage==lPage"
+                :disabled="cPage==lPage"
+              >
+                》
+              </button>
+              <button
+                v-if="cPage<lPage"
+                class="page-link"
+                href="#"
+                @click="next"
+              >
+                》
+              </button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+      <!-- 页脚 -->
+      <footer class="container-fluid p-0 text-center badge-dark">
+        <h1 class="text-danger m-0">
+          一切版权归属创作者，本人仅为搬运，若有侵权,
+          <a href="https://jikan.moe/" target="_blank">联系删除</a>
+        </h1>
+      </footer>
+    </div>
+    <script src="./js/vue.min.js"></script>
+    <script src="./js/axios.min.js"></script>
+    <script src="./conpument/00target.js"></script>
+    <script src="./conpument/02allpage.js"></script>
+    <script src="./conpument/03home.js"></script>
+    <script src="./conpument/04seasons.js"></script>
+    <script src="./conpument/05upcoming.js"></script>
+    <script src="./conpument/06sift.js"></script>
+    <script src="./conpument/07search.js"></script>
+    <script>
+      new Vue({
+        el: "#app",
+        data: {
+          list: [],
+          seasonList: [],
+          vAddresd: "",
+          cPage: 1,
+          lPage: 0,
+          pagetxt: 1,
+          isLoading: false,
+          current: "home",
+          giveurl: "https://api.jikan.moe/v4/top/anime?rating=pg13&",
+          siftyear: 0,
+          siftseason: "",
+          sifttype: "",
+          searchtxt: "",
+          isError: false,
+          ifnotfound: false,
+        },
+        mounted() {
+          // 获取当前页面url以及更新时重新调用获取数据函数
+          this.isLoading = true;
+          // 移除原有代码（重复且逻辑不一致）
+          Promise.all([this.fetchData(), this.fetchSeasonsData()]).finally(
+            () => {
+              this.isLoading = false;
+            }
+          );
+        },
+        methods: {
+          // 获取翻页后更新的数据
+          // fetchData函数(AI加强版)
+          async fetchData() {
+            try {
+              let requestUrl = this.giveurl;
+              // 1. 处理「全部番剧(all)」的类型筛选逻辑
+              if (this.current === "all") {
+                requestUrl = "https://api.jikan.moe/v4/anime?"; // 重置all页面的基础URL
+                // 拼接类型参数（有类型则加type=xxx，无则不加）
+                if (this.sifttype) {
+                  requestUrl += `type=${this.sifttype}&`;
+                }
+              }
+              // 针对筛选页面（sift）拼接年份和季节
+              if (this.current === "sift") {
+                // 有年份+季节时，使用「年份/季节」格式；无则用基础 seasons 接口
+                if (this.siftyear && this.siftseason) {
+                  requestUrl = `https://api.jikan.moe/v4/seasons/${this.siftyear}/${this.siftseason}?`;
+                } else {
+                  requestUrl = "https://api.jikan.moe/v4/seasons?"; // 兜底默认值
+                }
+              }
+              // 拼接分页参数（确保 URL 格式：xxx?page=1）
+              const fullUrl = `${requestUrl}page=${this.cPage}`;
+              const res = await axios.get(fullUrl);
+              const data = res.data;
+              // 兼容无分页的情况（如搜索无结果）
+              if (data.pagination) {
+                this.cPage = data.pagination.current_page;
+                this.lPage = data.pagination.last_visible_page;
+              } else {
+                this.ifnotfound = true;
+                this.cPage = 1;
+                this.lPage = 1;
+              }
+              this.list = data.data || []; // 无数据时赋值空数组
+              // 测试用
+              /* console.log(
+                `%c 响应成功：`,
+                "font-size: 19px; font-weight: bold; color: red;",
+                fullUrl
+              ); */
+            } catch (error) {
+              console.log(
+                `%c 请求失败：`,
+                "font-size: 18px; font-weight: bold; color: blue;",
+                error
+              );
+              this.list = []; // 失败时清空列表
+              this.lPage = 1;
+              this.isError = true;
+            }
+          },
+          //获取筛选用数据（年份/季度）
+          async fetchSeasonsData() {
+            axios({
+              method: "get",
+              url: `https://api.jikan.moe/v4/seasons?page=${this.cPage}&limit=20`,
+            })
+              .then((res) => {
+                this.seasonList = res.data.data;
+                if (this.seasonList.length > 0) {
+                  this.siftyear = this.seasonList[0].year;
+                  this.siftseason = this.seasonList[0].seasons[0];
+                }
+              })
+              .catch((err) => {
+                console.log(
+                  `%c 季节数据请求失败：`,
+                  "font-size: 18px; font-weight: bold; color: green;",
+                  err
+                );
+              });
+          },
+          // 点击后模态框显示当前动漫视频
+          addvid(av) {
+            if (av) {
+              // 移除可能导致冲突的参数（如 enablejsapi）
+              let cleanUrl = av
+                .replace(/&enablejsapi=1/, "")
+                .replace(/autoplay=1/, "autoplay=0"); // 避免自动播放
+              this.vAddresd = cleanUrl;
+            } else {
+              this.vAddresd = null;
+            }
+          },
+          // 点击后模态框清空当前动漫视频
+          clearVid() {
+            this.vAddresd = null;
+          },
+          // 上一页
+          past() {
+            if (this.cPage > 0 && this.cPage <= this.lPage) {
+              this.isLoading = true;
+              this.cPage--;
+              window.scrollTo(0, 0);
+              this.pagetxt = this.cPage;
+              this.fetchData().finally(() => {
+                this.isLoading = false;
+              });
+            }
+          },
+          // 下一页
+          next() {
+            if (this.cPage > 0 && this.cPage <= this.lPage) {
+              this.isLoading = true;
+              this.cPage++;
+              this.fetchData().finally(() => {
+                this.isLoading = false;
+              });
+              window.scrollTo(0, 0);
+              this.pagetxt = this.cPage;
+            }
+          },
+          // 跳转
+          goToPage() {
+            if (
+              this.pagetxt > 0 &&
+              this.pagetxt <= this.lPage &&
+              this.pagetxt !== this.cPage
+            ) {
+              this.isLoading = true;
+              this.cPage = this.pagetxt;
+              this.fetchData().finally(() => {
+                this.isLoading = false;
+              });
+            }
+            this.pagetxt = this.cPage;
+          },
+          // 为适应不同子页面url地址，点击导航栏时更新数据
+          pagechange(params) {
+            this.isLoading = true;
+            this.current = params.page;
+            this.giveurl = params.url;
+            this.cPage = 1; // 重置页码
+            this.fetchData().finally(() => {
+              this.isLoading = false;
+            }); // 重新加载数据
+            this.pagetxt = this.cPage;
+            this.searchtxt = params.keyword || ""; // 同步搜索关键词
+          },
+          // 选择年份后数据刷新
+          choseYears(cy) {
+            this.isLoading = true;
+            this.siftyear = cy;
+            this.cPage = 1;
+            this.fetchData().finally(() => {
+              this.isLoading = false;
+            });
+            this.pagetxt = this.cPage;
+          },
+          // 选择季度后数据刷新
+          choseSeasons(cs) {
+            this.isLoading = true;
+            this.siftseason = cs;
+            this.cPage = 1;
+            this.fetchData().finally(() => {
+              this.isLoading = false;
+            });
+            this.pagetxt = this.cPage;
+          },
+          choseType(ct) {
+            this.isLoading = true;
+            this.sifttype = ct;
+            this.cPage = 1;
+            this.fetchData().finally(() => {
+              this.isLoading = false;
+            });
+            this.pagetxt = this.cPage;
+          },
+        },
+        // 子页面注册
+        components: { target, all, home, seasons, upcoming, sift, search },
+      });
+    </script>
+  </body>
+</html>
