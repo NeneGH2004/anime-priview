@@ -78,7 +78,7 @@ var sift = {
     // 初始化季节（优先用父组件传递的默认值）
     if (this.defaultSeason) {
       this.siftseason = this.defaultSeason;
-      console.log(this.defaultSeason);
+      // console.log(this.defaultSeason);
     }
   },
 }
