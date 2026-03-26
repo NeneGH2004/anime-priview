@@ -1,7 +1,7 @@
 var all = {
   template: `
     <div class="container">
-      <h3 class="text-danger">全部番剧(⚠️含🔞⚠️)</h3>
+      <h3 class="text-danger mt-2" >全部番剧(⚠️含🔞⚠️)</h3>
           <div class="jumbotron jumbotron-fluid bg-light p-2">
             <div class="container">
                 <div>
@@ -64,9 +64,10 @@ var all = {
                   </button>
                   <button
                     type="button"
-                     class="btn btn-light"
+                     :class="{'btn btn-primary': activeType === 'pv', 'btn btn-light': activeType !== 'pv'}"
+                     @click="choseType('pv')"
                   >
-                    图片剧（链接无效）
+                    宣传片
                   </button>
                   <button
                     type="button"
@@ -82,8 +83,7 @@ var all = {
   methods: {
     choseType(type) {
       this.activeType = type
-      console.log(this.activeType);
-
+      // console.log(this.activeType);
       this.$emit("type-selected", type)
     },
   },

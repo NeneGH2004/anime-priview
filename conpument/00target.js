@@ -24,14 +24,14 @@ var target = {
             <ul class="navbar-nav mr-auto">
               <li :class="{'nav-item active':page==='home','nav-item':page!=='home'}">
                 <a class="nav-link" 
-                 @click="pagechange('home','https://api.jikan.moe/v4/top/anime?rating=pg13&')"
+                 @click="pagechange('home','https://api.jikan.moe/v4/top/anime?sfw=true&')"
                  href="#/top/anime"
                   >首页 <span class="sr-only">(current)</span></a
                 >
               </li>
               <li :class="{'nav-item active':page==='all','nav-item':page!=='all'}">
                 <a class="nav-link"
-                 @click="pagechange('all','https://api.jikan.moe/v4/anime?')"
+                 @click="pagechange('all','https://api.jikan.moe/v4/anime?sfw=false&')"
                  href="#/anime"
                 >全部</a>
               </li>
@@ -86,16 +86,18 @@ var target = {
       this.$emit("pagechange", {
         page,
         url,
-        keyword: this.searchtxt 
+        keyword: this.searchtxt
       })
     },
     handleSearch() {
-      if (this.searchtxt.trim()) {
+      const keyword = this.searchtxt.trim()
+      if (keyword) {
         const searchUrl = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(this.searchtxt)}&page=1`;
-        console.log("搜索成功", searchUrl);
-        this.pagechange('search',searchUrl)
-        this.searchtxt=""
+        this.pagechange('search', searchUrl)
+        // console.log("搜索成功", searchUrl);
+        this.searchtxt = ""
       }
+      // console.log("kw",keyword);
     }
   },
   data() {
