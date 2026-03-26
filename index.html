@@ -54,18 +54,20 @@
       </div>
       <!-- 加载失败 -->
       <div class="container text-center my-5" v-if="isError">
-        <h1 style="color: blue">加载失败，请重试😵</h1>
-      </div>
-      <!-- 未找到相关内容（数据为空） -->
-      <div class="container text-center my-5" v-if="ifnotfound">
-        <h1 class="text-dark">未找到相关内容，请重新输入关键字🤔</h1>
+        <h1 style="color: blue">加载失败，请刷新重试😵</h1>
       </div>
       <!-- 内容 -->
-      <main class="container mt-5" v-if="!isLoading">
-        <div class="row">
+      <main class="container mt-5" v-if="!isLoading && !isError">
+        <!-- 未找到相关内容（数据为空） -->
+        <div class="container text-center my-5" v-if="list.length === 0">
+          <h1 class="text-dark">似乎没有相关数据🤔</h1>
+          <span>但这不是你的问题</span>
+        </div>
+        <div class="row" v-else>
           <div
             class="col-xl-3 col-lg-4 col-md-6 mb-3"
             v-for="(i,index) in list"
+            :key="index"
           >
             <div class="card w-100 h-100">
               <img
@@ -195,7 +197,7 @@
         </nav>
       </div>
       <!-- 页脚 -->
-      <footer class="container-fluid p-0 text-center badge-dark">
+      <footer class="container-fluid p-0 m-0 text-center badge-dark">
         <h1 class="text-danger m-0">
           一切版权归属创作者，本人仅为搬运，若有侵权,
           <a href="https://jikan.moe/" target="_blank">联系删除</a>
@@ -223,7 +225,7 @@
           pagetxt: 1,
           isLoading: false,
           current: "home",
-          giveurl: "https://api.jikan.moe/v4/top/anime?rating=pg13&",
+          giveurl: "https://api.jikan.moe/v4/top/anime?sfw=true&",
           siftyear: 0,
           siftseason: "",
           sifttype: "",
@@ -247,59 +249,77 @@
           async fetchData() {
             try {
               let requestUrl = this.giveurl;
-              // 1. 处理「全部番剧(all)」的类型筛选逻辑
-              if (this.current === "all") {
-                requestUrl = "https://api.jikan.moe/v4/anime?"; // 重置all页面的基础URL
+              if (this.current === "search") {
+                // 保留搜索关键词，避免翻页丢失
+                const keyword = this.searchtxt.trim();
+                if (keyword) {
+                  requestUrl = `https://api.jikan.moe/v4/anime?q=${encodeURIComponent(
+                    keyword
+                  )}&`;
+                }
+              }
+              // 处理「全部番剧(all)」的类型筛选逻辑
+              else if (this.current === "all") {
+                requestUrl = "https://api.jikan.moe/v4/anime?sfw=false&"; // 重置all页面的基础URL
                 // 拼接类型参数（有类型则加type=xxx，无则不加）
                 if (this.sifttype) {
                   requestUrl += `type=${this.sifttype}&`;
                 }
               }
               // 针对筛选页面（sift）拼接年份和季节
-              if (this.current === "sift") {
-                // 有年份+季节时，使用「年份/季节」格式；无则用基础 seasons 接口
-                if (this.siftyear && this.siftseason) {
+              else if (this.current === "sift") {
+                // 有年份+季节时，使用「年份/季节」格式；无则用基础seasons接口（现在年份/季节）
+                if (this.siftyear && this.siftseason && this.siftyear !== 0) {
                   requestUrl = `https://api.jikan.moe/v4/seasons/${this.siftyear}/${this.siftseason}?`;
                 } else {
-                  requestUrl = "https://api.jikan.moe/v4/seasons?"; // 兜底默认值
+                  requestUrl = "https://api.jikan.moe/v4/seasons?page=1"; // 兜底：直接带默认分页
                 }
               }
               // 拼接分页参数（确保 URL 格式：xxx?page=1）
               const fullUrl = `${requestUrl}page=${this.cPage}`;
               const res = await axios.get(fullUrl);
               const data = res.data;
+              this.isError = false;
+              this.ifnotfound = false;
+              this.list = data.data || []; // 无数据时赋值空数组
               // 兼容无分页的情况（如搜索无结果）
               if (data.pagination) {
                 this.cPage = data.pagination.current_page;
                 this.lPage = data.pagination.last_visible_page;
               } else {
-                this.ifnotfound = true;
                 this.cPage = 1;
                 this.lPage = 1;
               }
-              this.list = data.data || []; // 无数据时赋值空数组
+              // 标记：数据为空时设置ifnotfound
+              if (this.list.length === 0) {
+                this.ifnotfound = true;
+              } else {
+                this.ifnotfound = false;
+              }
               // 测试用
-              /* console.log(
+              console.log(
                 `%c 响应成功：`,
                 "font-size: 19px; font-weight: bold; color: red;",
                 fullUrl
-              ); */
+              );
             } catch (error) {
               console.log(
                 `%c 请求失败：`,
                 "font-size: 18px; font-weight: bold; color: blue;",
                 error
               );
-              this.list = []; // 失败时清空列表
+              // 错误时重置所有状态
+              this.list = [];
               this.lPage = 1;
               this.isError = true;
+              this.ifnotfound = false; // 失败和无数据区分开
             }
           },
           //获取筛选用数据（年份/季度）
           async fetchSeasonsData() {
             axios({
               method: "get",
-              url: `https://api.jikan.moe/v4/seasons?page=${this.cPage}&limit=20`,
+              url: `https://api.jikan.moe/v4/seasons?page=${this.cPage}`,
             })
               .then((res) => {
                 this.seasonList = res.data.data;
@@ -334,7 +354,8 @@
           },
           // 上一页
           past() {
-            if (this.cPage > 0 && this.cPage <= this.lPage) {
+            if (this.cPage > 1) {
+              // 修正：cPage最小为1，不能<=0
               this.isLoading = true;
               this.cPage--;
               window.scrollTo(0, 0);
@@ -346,14 +367,15 @@
           },
           // 下一页
           next() {
-            if (this.cPage > 0 && this.cPage <= this.lPage) {
+            if (this.cPage < this.lPage) {
+              // 修正：cPage < lPage才允许下一页
               this.isLoading = true;
               this.cPage++;
+              window.scrollTo(0, 0);
+              this.pagetxt = this.cPage;
               this.fetchData().finally(() => {
                 this.isLoading = false;
               });
-              window.scrollTo(0, 0);
-              this.pagetxt = this.cPage;
             }
           },
           // 跳转
@@ -377,11 +399,15 @@
             this.current = params.page;
             this.giveurl = params.url;
             this.cPage = 1; // 重置页码
+            // 新增：重置所有异常状态
+            this.isError = false;
+            this.ifnotfound = false;
+            // 同步搜索关键词
+            this.searchtxt = params.keyword || "";
             this.fetchData().finally(() => {
               this.isLoading = false;
             }); // 重新加载数据
             this.pagetxt = this.cPage;
-            this.searchtxt = params.keyword || ""; // 同步搜索关键词
           },
           // 选择年份后数据刷新
           choseYears(cy) {
