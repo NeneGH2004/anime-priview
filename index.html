@@ -26,12 +26,17 @@
       <div class="container text-center mt-5">
         <h3 class="text-center">第{{cPage}}页</h3>
         <span>跳转到第</span>
+        <!-- min="1"  最小输入值1 -->
+        <!-- step="1" 只能输入整数 -->
         <input
           type="number"
           @keyup.enter="goToPage"
           style="width: 60px"
           v-model.number="pagetxt"
-        /><span>页</span>
+          min="1"
+          step="1"
+        />
+        <span>页</span>
         <span>/共{{lPage}}页</span>
         <button class="btn btn-sm btn-primary ml-2" @click="goToPage">
           跳转
@@ -115,15 +120,17 @@
         >
           <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
-              <h1 class="text-center" v-if="vAddresd==null">
-                哦？这里并没有视频。
-                <img
-                  src="./image/无奈.jpeg"
-                  alt="无奈.jpeg"
-                  class="img-fluid w-100"
-                  style="max-width: 350px; height: auto"
-                />
-              </h1>
+              <div class="p-0 m-0 w-100 h-100" >
+                <h1 class="text-center" v-show="vAddresd===null">
+                  哦？这里并没有视频。
+                  <img
+                    src="./image/无奈.jpeg"
+                    alt="无奈.jpeg"
+                    class="img-fluid w-100"
+                    style="max-width: 350px; height: auto"
+                  />
+                </h1>
+              </div>
               <iframe
                 w
                 v-if="vAddresd"
@@ -297,17 +304,17 @@
                 this.ifnotfound = false;
               }
               // 测试用
-              /*console.log(
+              /* console.log(
                 `%c 响应成功：`,
                 "font-size: 19px; font-weight: bold; color: red;",
                 fullUrl
-              );*/
+              ); */
             } catch (error) {
-              console.log(
+              /* console.log(
                 `%c 请求失败：`,
                 "font-size: 18px; font-weight: bold; color: blue;",
                 error
-              );
+              ); */
               // 错误时重置所有状态
               this.list = [];
               this.lPage = 1;
@@ -329,11 +336,11 @@
                 }
               })
               .catch((err) => {
-                console.log(
+                /* console.log(
                   `%c 季节数据请求失败：`,
                   "font-size: 18px; font-weight: bold; color: green;",
                   err
-                );
+                ); */
               });
           },
           // 点击后模态框显示当前动漫视频
@@ -350,7 +357,7 @@
           },
           // 点击后模态框清空当前动漫视频
           clearVid() {
-            this.vAddresd = null;
+            this.vAddresd = "";
           },
           // 上一页
           past() {
@@ -380,18 +387,29 @@
           },
           // 跳转
           goToPage() {
-            if (
-              this.pagetxt > 0 &&
-              this.pagetxt <= this.lPage &&
-              this.pagetxt !== this.cPage
-            ) {
+            // 1. 先把输入值转数字，非数字直接置为1
+            let pagetxtNum = Number(this.pagetxt);
+            // 2. 处理NaN、负数、0、小数：强制转为整数，且最小为1
+            let pagetxtInt = isNaN(pagetxtNum)
+              ? 1
+              : Math.max(1, Math.floor(pagetxtNum));
+            // 3. 处理超过最大页数的情况：最大为总页数
+            if (pagetxtInt > this.lPage) {
+              pagetxtInt = this.lPage;
+            }
+            // 4. 只有目标页和当前页不同时，才执行跳转
+            if (pagetxtInt !== this.cPage) {
               this.isLoading = true;
-              this.cPage = this.pagetxt;
+              this.cPage = pagetxtInt;
+              // 5. 同步更新输入框的值，避免错误值残留
+              this.pagetxt = pagetxtInt;
               this.fetchData().finally(() => {
                 this.isLoading = false;
               });
+            } else {
+              // 6. 页面没变化时，也同步输入框为正确值（比如用户输入0.1，直接显示1）
+              this.pagetxt = this.cPage;
             }
-            this.pagetxt = this.cPage;
           },
           // 为适应不同子页面url地址，点击导航栏时更新数据
           pagechange(params) {
