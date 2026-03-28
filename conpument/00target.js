@@ -103,7 +103,7 @@ var target = {
   data() {
     return {
       page: "home",
-      url: 'https://api.jikan.moe/v4/top/anime?rating=pg13&',
+      url: 'https://api.jikan.moe/v4/top/anime?sfw=true&',
       searchtxt: ""
     };
   },

@@ -7,11 +7,11 @@ var sift = {
             <div class="container">
               <ul class="mb-0">
                 <li>
-                  <h6 class="h6">
+                  <h4 class="h4">
                     年份 
                     <!-- 点击按钮切换展开/收起状态，动态修改按钮文字 -->
-                    <button @click="toggleYearShow">{{isYearShow ? '▲' : '▼'}}</button>
-                  </h6>
+                    <button class="btn btn-primary" @click="toggleYearShow">{{isYearShow ? '▲' : '▼'}}</button>
+                  </h4>
                   <!-- 用v-show控制年份按钮的显示/隐藏 -->
                   <button
                     type="button"
@@ -24,10 +24,10 @@ var sift = {
                   </button>
                 </li>
                 <li>
-                  <h6 class="h6">
+                  <h4 class="h4">
                     季节 
-                    <button @click="toggleSeasonsShow">{{isSeasonsShow ? '▲' : '▼'}}</button>
-                  </h6>
+                    <button class="btn btn-primary" @click="toggleSeasonsShow">{{isSeasonsShow ? '▲' : '▼'}}</button>
+                  </h4>
                   <button
                     type="button"
                     :class="{'btn btn-primary': siftseason === 'spring', 'btn btn-light': siftseason !== 'spring'}"
